@@ -1,5 +1,9 @@
 # The Ğ that lost its breve — kinetic typography from a Canvas text raster to 250,000 particles
 
+<!-- LINKS:BEGIN — üretildi: scripts/sync-repo-links.py · elle düzenleme -->
+**▶ [Live demo](https://m2-md.github.io/kinetic-particle-typography/)** · [Source](https://github.com/m2-md/kinetic-particle-typography)
+<!-- LINKS:END -->
+
 Working code for the article "The Ğ That Lost Its Breve: Kinetic Typography from a
 Canvas Text Raster to 250,000 Particles".
 
