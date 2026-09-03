@@ -4,6 +4,8 @@
 **▶ [Live demo](https://m2-md.github.io/kinetic-particle-typography/)** · [Source](https://github.com/m2-md/kinetic-particle-typography)
 <!-- LINKS:END -->
 
+> Interactive particle typography: rasterizing canvas text, sampling alpha contours, Morton order pairing, and morphing 250,000 particles via single-uniform WebGL2 instancing.
+
 Working code for the article "The Ğ That Lost Its Breve: Kinetic Typography from a
 Canvas Text Raster to 250,000 Particles".
 
