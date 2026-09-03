@@ -3,7 +3,7 @@ export function smoothstep(edge0: number, edge1: number, x: number): number {
   return t * t * (3 - 2 * t);
 }
 
-/** Parçacığın kendi zamanı. spread < 1 olmalı, yoksa pencere sıfır genişlikte. */
+/** A particle's own clock. spread must stay < 1, otherwise the window has zero width. */
 export function localTime(t: number, phase: number, spread: number): number {
   const start = phase * spread;
   return smoothstep(start, start + (1 - spread), t);
@@ -15,9 +15,9 @@ export interface Vec2 {
 }
 
 /**
- * Vertex shader'daki yay matematiğinin CPU ikizi. Sıfır uzunlukta yer değiştirmede
- * `normalize` NaN üretiyor; bölen `max(len, 1e-6)` ile kelepçeli — shader'daki
- * satırın birebir aynısı. Okunabilirlik ölçümü bu fonksiyonla hesaplanıyor.
+ * CPU twin of the bow math in the vertex shader. On a zero-length displacement
+ * `normalize` yields NaN; the divisor is clamped with `max(len, 1e-6)` — the exact
+ * same line as in the shader. The readability measurement runs through this function.
  */
 export function bowedPosition(
   sx: number,

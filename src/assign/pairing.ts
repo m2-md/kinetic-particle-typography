@@ -7,7 +7,7 @@ export const PAIRING_MODES: readonly PairingMode[] = ["morton", "identity", "byX
 const INDEX_BITS = 20;
 const INDEX_SCALE = 2 ** INDEX_BITS;
 
-/** Örnekleyici hangi sırayla ürettiyse o sıra. Hiçbir şey yapmıyor, bilerek. */
+/** Whatever order the sampler emitted. Does nothing, on purpose. */
 export function orderIdentity(count: number): Uint32Array {
   const order = new Uint32Array(count);
   for (let i = 0; i < count; i++) order[i] = i;
@@ -15,13 +15,13 @@ export function orderIdentity(count: number): Uint32Array {
 }
 
 /**
- * Yatay konuma göre sıralama. Morton ile AYNI tekniği kullanıyor —
- * anahtar (32 bit kuantize x) ile indeksi (20 bit) tek bir float64'e paketleyip
- * comparator'sız `sort()`. İki satırın ms farkı gerçekten sıralama ölçütünün
- * farkı olsun diye; comparator'lı bir sürümle kıyaslamak haksızlık olurdu.
+ * Sort by horizontal position. Uses the SAME technique as Morton — pack the key
+ * (32-bit quantized x) and the index (20 bit) into one float64, then `sort()`
+ * without a comparator. So that the ms gap between the two rows really is the
+ * gap between sort criteria; comparing against a comparator version would be unfair.
  */
 export function orderByX(points: Float32Array, count: number): Uint32Array {
-  if (count > INDEX_SCALE) throw new Error("indeks 20 bite sığmıyor");
+  if (count > INDEX_SCALE) throw new Error("index does not fit in 20 bits");
 
   const keys = new Float64Array(count);
   for (let i = 0; i < count; i++) {
@@ -35,7 +35,7 @@ export function orderByX(points: Float32Array, count: number): Uint32Array {
   return order;
 }
 
-/** Fisher-Yates. İzdihamın kendisi; ölçümde alt sınır olarak duruyor. */
+/** Fisher-Yates. The stampede itself; it stands as the lower bound in the measurement. */
 export function orderShuffled(count: number, rng: () => number): Uint32Array {
   const order = orderIdentity(count);
   for (let i = count - 1; i > 0; i--) {
@@ -47,7 +47,7 @@ export function orderShuffled(count: number, rng: () => number): Uint32Array {
   return order;
 }
 
-/** Z-eğrisi sırası: iki boyut tek bir sıraya iniyor. */
+/** Z-curve order: two dimensions collapse into a single sequence. */
 export function orderMorton(points: Float32Array, count: number): Uint32Array {
   return mortonOrder(points, count);
 }

@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { hash01 } from "../src/anim/hash";
 
 /**
- * Shader'daki `hash01(uint)` ile birebir aynı sayıları vermek ZORUNDA.
- * Bu sabitler referans: shader tarafı ayrıca ölçüm modundaki parite
- * kontrolüyle karşılaştırılıyor.
+ * It MUST give the exact same numbers as the shader's `hash01(uint)`.
+ * These constants are the reference: the shader side is additionally checked
+ * against the parity comparison in measurement mode.
  */
 const EXPECTED = [
   0, 0.36358022689819336, 0.8319404125213623, 0.058440983295440674, 0.1870782971382141,
@@ -12,13 +12,13 @@ const EXPECTED = [
 ];
 
 describe("hash01", () => {
-  it("ilk sekiz indekste beklenen sabitler", () => {
+  it("hits the expected constants on the first eight indices", () => {
     for (let i = 0; i < EXPECTED.length; i++) {
       expect(hash01(i)).toBe(EXPECTED[i]);
     }
   });
 
-  it("çıktı [0,1) aralığında", () => {
+  it("the output stays in the [0,1) range", () => {
     for (let i = 0; i < 5000; i++) {
       const v = hash01(i);
       expect(v).toBeGreaterThanOrEqual(0);
@@ -26,11 +26,11 @@ describe("hash01", () => {
     }
   });
 
-  it("deterministik ve indeksten indekse değişiyor", () => {
+  it("is deterministic and varies from index to index", () => {
     expect(hash01(1234)).toBe(hash01(1234));
     const values = new Set<number>();
     for (let i = 0; i < 1000; i++) values.add(hash01(i));
-    // 1000 indeks, çakışma neredeyse yok: karıştırıcı gerçekten karıştırıyor.
+    // 1000 indices, almost no collisions: the mixer really does mix.
     expect(values.size).toBeGreaterThan(990);
   });
 });

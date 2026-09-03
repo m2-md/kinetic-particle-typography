@@ -1,4 +1,4 @@
-/** Girdi dizisini MUTASYONA UĞRATMAZ; kopya üzerinde sıralar. */
+/** Does NOT MUTATE the input array; sorts a copy. */
 export function median(values: readonly number[]): number {
   return percentile(values, 50);
 }

@@ -3,7 +3,7 @@ import { occupancyCv } from "../src/measure/occupancy";
 import { maskFromRaster } from "../src/measure/readability";
 import { solidBox } from "../src/raster/syntheticRaster";
 
-/** 8×8 raster, 4 piksellik hücre → 2×2 = dört hücrelik ızgara, hepsi kapsanan. */
+/** 8×8 raster, 4-pixel cells → a 2×2 = four-cell grid, all of them covered. */
 const SUPPORT = maskFromRaster(solidBox(8, 8, 0, 0, 8, 8, 255, 0), 128, 4);
 
 function repeat(pairs: readonly [number, number][], times: number): Float32Array {
@@ -18,8 +18,8 @@ function repeat(pairs: readonly [number, number][], times: number): Float32Array
   return out;
 }
 
-describe("doluluk değişim katsayısı", () => {
-  it("her hücreye eşit sayıda düşen bulutta 0", () => {
+describe("occupancy coefficient of variation", () => {
+  it("is 0 for a cloud that lands equally in every cell", () => {
     const points = repeat(
       [
         [0.25, 0.25],
@@ -32,13 +32,13 @@ describe("doluluk değişim katsayısı", () => {
     expect(occupancyCv(points, 8, 8, 4, SUPPORT)).toBeCloseTo(0, 12);
   });
 
-  it("tek hücreye yığılmış bulutta yüksek", () => {
+  it("is high for a cloud piled into a single cell", () => {
     const points = repeat([[0.25, 0.25]], 40);
-    // Üç boş + bir dolu hücre → std/ortalama = sqrt(3).
+    // Three empty cells + one full → std/mean = sqrt(3).
     expect(occupancyCv(points, 8, 8, 4, SUPPORT)).toBeCloseTo(Math.sqrt(3), 6);
   });
 
-  it("dengesiz dağılım eşit dağılımdan büyük CV veriyor", () => {
+  it("an uneven distribution gives a larger CV than an even one", () => {
     const even = repeat(
       [
         [0.25, 0.25],
@@ -50,7 +50,7 @@ describe("doluluk değişim katsayısı", () => {
     );
     const skewed = new Float32Array(even.length);
     skewed.set(even);
-    // İkinci hücrenin on noktasını birinciye taşı: dengeyi boz.
+    // Move ten of the second cell's points into the first: break the balance.
     for (let i = 20; i < 40; i += 2) {
       skewed[i] = 0.25;
       skewed[i + 1] = 0.25;
@@ -60,7 +60,7 @@ describe("doluluk değişim katsayısı", () => {
     );
   });
 
-  it("boş girdide tanımlı değer", () => {
+  it("returns a defined value on empty input", () => {
     expect(occupancyCv(new Float32Array(0), 8, 8, 4, SUPPORT)).toBe(0);
     expect(occupancyCv(new Float32Array(0), 8, 8, 4)).toBe(0);
   });

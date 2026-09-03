@@ -1,9 +1,9 @@
 import type { AlphaRaster } from "./alphaRaster";
 
 export interface CoverageIndex {
-  /** Eşiği geçen piksellerin düz (row-major) indeksleri. */
+  /** Flat (row-major) indices of the pixels that pass the threshold. */
   readonly pixels: Int32Array;
-  /** prefix[k] = ilk k pikselin kapsama toplamı. Uzunluk pixels.length + 1. */
+  /** prefix[k] = coverage sum of the first k pixels. Length pixels.length + 1. */
   readonly prefix: Float64Array;
   readonly total: number;
 }
@@ -23,7 +23,7 @@ export function buildCoverageIndex(raster: AlphaRaster, threshold: number): Cove
     const a = data[i];
     if (a < threshold) continue;
     pixels[k] = i;
-    sum += a / 255; // yarım dolu piksel yarım oy kullanıyor
+    sum += a / 255; // a half-covered pixel casts half a vote
     prefix[++k] = sum;
   }
 
@@ -44,9 +44,9 @@ export function sampleTargets(
   const invW = 1 / raster.width;
   const invH = 1 / raster.height;
 
-  let j = 0; // yürüyen imleç: hiç geri gitmiyor
+  let j = 0; // walking cursor: never steps back
   for (let k = 0; k < count; k++) {
-    // Katman jitter'ı: k'ıncı parçacık [k, k+1) diliminin içinden çıkıyor.
+    // Stratum jitter: the k-th particle comes out of the [k, k+1) slice.
     const u = (k + rng()) * step;
     while (j < pixels.length - 1 && prefix[j + 1] < u) j++;
 
@@ -54,7 +54,7 @@ export function sampleTargets(
     const px = p % raster.width;
     const py = (p / raster.width) | 0;
 
-    // Piksel içi jitter: aynı piksele düşen parçacıklar üst üste binmiyor.
+    // Intra-pixel jitter: particles landing on the same pixel do not stack up.
     out[k * 2] = (px + rng()) * invW;
     out[k * 2 + 1] = (py + rng()) * invH;
   }

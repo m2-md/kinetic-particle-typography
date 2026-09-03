@@ -18,7 +18,7 @@ import { createCloud, type Cloud, type DrawMode } from "./gl/cloud";
 import { createGpuTimer, type GpuTimer } from "./measure/gpuTimer";
 
 export const WORDS: readonly string[] = ["IŞIK", "GÜNEŞ", "YAĞMUR", "ÇİÇEK"];
-/** Ekranda gösterilmiyor; yalnızca breve'in payını ölçmek için. */
+/** Never shown on screen; only there to measure the breve's share. */
 export const CONTROL_WORD = "YAGMUR";
 
 export const FONT_SIZE = 180;
@@ -29,7 +29,7 @@ export const DEFAULT_SPREAD = 0.6;
 export const DEFAULT_RADIUS_PX = 3;
 export const DEFAULT_SCALE = 0.5;
 export const BOW = 0.05;
-/** Kare başına sabit adım. Delta-zaman YOK: ölçüm deterministik olmak zorunda. */
+/** Fixed step per frame. NO delta-time: the measurement has to stay deterministic. */
 export const MORPH_STEP = 1 / 72;
 export const HOLD_FRAMES = 60;
 
@@ -93,13 +93,13 @@ export interface App {
 
   resize(): void;
   setFixedSize(width: number, height: number): void;
-  /** Bir kare ilerlet: uT adımı, bekleme, otomatik kelime döngüsü. */
+  /** Advance one frame: the uT step, the hold, the automatic word cycle. */
   advance(): void;
   render(): void;
   extract(word: string, count?: number, threshold?: number, pairing?: PairingMode): ExtractResult;
   rasterOf(word: string): AlphaRaster;
   stats(): AppStats;
-  /** Biriken GPU sorgu sonuçlarını alıp havuzu boşaltır. */
+  /** Takes the accumulated GPU query results and empties the pool. */
   takeGpuSamples(): number[];
   readonly autoCycle: boolean;
   setAutoCycle(on: boolean): void;
@@ -115,14 +115,14 @@ const UNIFORMS = [
   "uColor",
 ] as const;
 
-/** Kelime başına sabit tohum: aynı kelime her zaman aynı bulutu veriyor. */
+/** Fixed seed per word: the same word always yields the same cloud. */
 function seedForWord(word: string): number {
   const i = WORDS.indexOf(word);
   return (i >= 0 ? i : WORDS.length) + 1;
 }
 
-/** Karıştırma tohumu kelimeye göre FARKLI olmak zorunda: aynı permütasyon
- *  iki bulutta da uygulanırsa "karıştırılmış" eşleştirme kimliğe eşit çıkar. */
+/** The shuffle seed has to DIFFER per word: apply the same permutation to both
+ *  clouds and the "shuffled" pairing comes out equal to identity. */
 function shuffleSeedForWord(word: string): number {
   return seedForWord(word) * 7919 + 13;
 }
@@ -134,7 +134,7 @@ export function createApp(canvas: HTMLCanvasElement, options: AppOptions): App {
     padding: PADDING,
   };
 
-  // Kutu BÜTÜN kelimelerden kuruluyor; kontrol kelimesi de dâhil.
+  // The box is built from ALL the words, the control word included.
   const box = measureBox([...WORDS, CONTROL_WORD], rasterOptions);
 
   const context = createContext(canvas);
@@ -227,7 +227,7 @@ export function createApp(canvas: HTMLCanvasElement, options: AppOptions): App {
     uploadedBase += cloud.uploadedBytes;
     cloud.dispose();
     cloud = createCloud(gl, count);
-    // İki tampon da dolsun: ilk kare kaynak olarak çöp okumasın.
+    // Fill both buffers so the first frame does not read garbage as its source.
     const result = extract(word);
     cloud.push(result.targets, count);
     cloud.push(result.targets, count);
@@ -292,11 +292,11 @@ export function createApp(canvas: HTMLCanvasElement, options: AppOptions): App {
     gl.uniform1f(u["uBow"], BOW);
     gl.uniform3f(u["uColor"], 0.36, 0.72, 1.0);
 
-    // ?load=N: vsync tavanının altında kalan yapılandırmaları ayırmak için
-    // yapay yük. Bulut kare başına N kez çiziliyor.
+    // ?load=N: artificial load, to separate configurations that stay under the
+    // vsync ceiling. The cloud is drawn N times per frame.
     for (let i = 0; i < load; i++) cloud.draw(drawMode, count);
 
-    // Sorgular her karede toplanıyor: havuz 8 sorguluk, boşaltılmazsa tıkanır.
+    // Queries are collected every frame: the pool holds 8, it jams if not drained.
     if (timer) {
       timer.end();
       timer.collect(gpuSamples);
@@ -321,7 +321,7 @@ export function createApp(canvas: HTMLCanvasElement, options: AppOptions): App {
     }
   }
 
-  // Açılış: iki tampon da ilk kelimeyle dolsun, sahne durağan başlasın.
+  // Startup: fill both buffers with the first word so the scene starts at rest.
   {
     const first = extract(WORDS[0]);
     cloud.push(first.targets, count);

@@ -1,15 +1,15 @@
 import { morton2D } from "./morton";
 
-const INDEX_BITS = 20; // 1.048.576 parçacığa kadar
+const INDEX_BITS = 20; // up to 1,048,576 particles
 const INDEX_SCALE = 2 ** INDEX_BITS;
 
 /**
- * Morton kodu (32 bit) ile indeksi (20 bit) tek bir float64'e paketliyoruz:
- * 52 bit, 2^53'ün altında, kayıpsız. Sıralamayı comparator'sız
- * Float64Array.prototype.sort yapıyor.
+ * We pack the Morton code (32 bit) and the index (20 bit) into one float64:
+ * 52 bits, below 2^53, lossless. The sorting is done by
+ * Float64Array.prototype.sort without a comparator.
  */
 export function mortonOrder(points: Float32Array, count: number): Uint32Array {
-  if (count > INDEX_SCALE) throw new Error("indeks 20 bite sığmıyor");
+  if (count > INDEX_SCALE) throw new Error("index does not fit in 20 bits");
 
   const keys = new Float64Array(count);
   for (let i = 0; i < count; i++) {
@@ -23,7 +23,7 @@ export function mortonOrder(points: Float32Array, count: number): Uint32Array {
   return order;
 }
 
-/** Sıralamayı uygulayıp yeni bir hedef dizisi üretir. */
+/** Applies the ordering and produces a new target array. */
 export function reorder(points: Float32Array, order: Uint32Array): Float32Array {
   const out = new Float32Array(order.length * 2);
   for (let i = 0; i < order.length; i++) {

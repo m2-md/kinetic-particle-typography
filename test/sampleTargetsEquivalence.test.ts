@@ -6,16 +6,16 @@ import { solidBox, syntheticWord } from "../src/raster/syntheticRaster";
 import { mulberry32 } from "../src/rng";
 
 const RASTERS = [
-  { name: "tek dolu blok", raster: solidBox(64, 32, 8, 4, 20, 16, 255, 0) },
-  { name: "kenarı yumuşak sentetik kelime", raster: syntheticWord(128, 48, 5) },
-  { name: "iki seviyeli alan", raster: solidBox(48, 48, 4, 4, 30, 30, 200, 40) },
+  { name: "a single solid block", raster: solidBox(64, 32, 8, 4, 20, 16, 255, 0) },
+  { name: "an antialiased synthetic word", raster: syntheticWord(128, 48, 5) },
+  { name: "a two-level field", raster: solidBox(48, 48, 4, 4, 30, 30, 200, 40) },
 ];
 
 const COUNTS = [37, 1000, 9999];
 
-describe("yürüyüş ≡ ikili arama", () => {
+describe("walk ≡ binary search", () => {
   for (const { name, raster } of RASTERS) {
-    it(`${name}: aynı tohum, bit-birebir aynı Float32Array`, () => {
+    it(`${name}: same seed, a bit-identical Float32Array`, () => {
       const index = buildCoverageIndex(raster, 32);
       for (const count of COUNTS) {
         const walk = sampleTargets(raster, index, count, mulberry32(count + 1));
@@ -25,7 +25,7 @@ describe("yürüyüş ≡ ikili arama", () => {
     });
   }
 
-  it("saf rastgele çekiş FARKLI bir dizi üretiyor (kontrol grubu gerçekten farklı)", () => {
+  it("the pure random draw produces a DIFFERENT array (the control really is a control)", () => {
     const raster = RASTERS[1].raster;
     const index = buildCoverageIndex(raster, 32);
     const stratified = sampleTargets(raster, index, 2000, mulberry32(3));

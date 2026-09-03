@@ -1,19 +1,19 @@
 export function withDefines(src: string, defines: readonly string[]): string {
   if (defines.length === 0) return src;
-  // #version ilk satır olmak ZORUNDA; define'lar ikinci satırdan giriyor.
+  // #version MUST be the first line; the defines go in from the second line on.
   const nl = src.indexOf("\n");
   return src.slice(0, nl + 1) + defines.map((d) => `#define ${d}\n`).join("") + src.slice(nl + 1);
 }
 
 export function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
   const shader = gl.createShader(type);
-  if (!shader) throw new Error("shader oluşturulamadı");
+  if (!shader) throw new Error("could not create shader");
   gl.shaderSource(shader, src);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     const log = gl.getShaderInfoLog(shader) ?? "";
     gl.deleteShader(shader);
-    throw new Error(`shader derlenmedi: ${log}`);
+    throw new Error(`shader did not compile: ${log}`);
   }
   return shader;
 }
@@ -24,7 +24,7 @@ export function link(
   fragmentSrc: string,
 ): WebGLProgram {
   const program = gl.createProgram();
-  if (!program) throw new Error("program oluşturulamadı");
+  if (!program) throw new Error("could not create program");
 
   const vs = compile(gl, gl.VERTEX_SHADER, vertexSrc);
   const fs = compile(gl, gl.FRAGMENT_SHADER, fragmentSrc);
@@ -37,7 +37,7 @@ export function link(
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     const log = gl.getProgramInfoLog(program) ?? "";
     gl.deleteProgram(program);
-    throw new Error(`program linklenmedi: ${log}`);
+    throw new Error(`program did not link: ${log}`);
   }
   return program;
 }
@@ -53,7 +53,7 @@ export function createProgram(
 
 export type Uniforms = Record<string, WebGLUniformLocation | null>;
 
-/** Kullanılmayan uniform'lar sürücü tarafından atılıyor; null dönmesi normal. */
+/** Unused uniforms get dropped by the driver; getting null back is normal. */
 export function uniformLocations(
   gl: WebGL2RenderingContext,
   program: WebGLProgram,

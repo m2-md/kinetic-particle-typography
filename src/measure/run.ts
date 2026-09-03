@@ -74,7 +74,7 @@ export interface MeasureReport {
     identity: number;
     byX: number;
     morton: number;
-    /** Eksen ayrıştırması: kimliğin kazancı dikeyde mi, yatayda mı? */
+    /** Axis breakdown: is identity's gain on the vertical or the horizontal? */
     axis: Record<"shuffled" | "identity" | "byX" | "morton", { x: number; y: number }>;
     shuffleMs: number;
     sortXMs: number;
@@ -110,8 +110,8 @@ function timeIt(fn: () => void, runs = TIMING_RUNS): number {
 }
 
 /**
- * Yatay eksen kutu genişliğine göre normalize; dikey eksen kutu YÜKSEKLİĞİNE.
- * Mesafeyi tek bir birime (kutu genişliği) çekmek için y'yi orana göre ölçekliyoruz.
+ * The horizontal axis is normalized to the box width, the vertical to the box HEIGHT.
+ * To pull distance into a single unit (box width) we scale y by the ratio.
  */
 function toBoxWidthUnits(points: Float32Array, width: number, height: number): Float32Array {
   const k = height / width;
@@ -123,7 +123,7 @@ function toBoxWidthUnits(points: Float32Array, width: number, height: number): F
   return out;
 }
 
-/** Shader'daki konum hesabının CPU ikizi; okunabilirlik ölçümü buna dayanıyor. */
+/** CPU twin of the shader's position math; the readability measurement rests on it. */
 function positionsAt(
   source: Float32Array,
   target: Float32Array,
@@ -176,17 +176,17 @@ function summarize(samples: number[]): TimingEntry {
 }
 
 /**
- * Deterministik ölçüm koşusu (`?measure=1`).
- * Arka tampon sabit, tohumlar sabit, rAF döngüsü elle sürülüyor.
+ * The deterministic measurement run (`?measure=1`).
+ * Backing store fixed, seeds fixed, the rAF loop driven by hand.
  */
 export interface MeasureOptions {
   readonly load: number;
   /**
-   * Kare bütçesi. Varsayılan 60 + 180; yalnızca hattın bütün alanları dolduruyor
-   * mu diye BAKMAK için düşürülür (yavaş yazılım rasterleştiricide tam koşu
-   * saatler sürüyor). Kullanılan değerler raporun `warmup`/`frames` alanlarına
-   * yazılıyor, yani kısaltılmış koşu kendini ele veriyor — makaleye giren sayı
-   * her zaman varsayılan bütçeden gelmeli.
+   * The frame budget. Default 60 + 180; lowered only to LOOK at whether the
+   * pipeline fills all of its fields (on a slow software rasterizer a full run
+   * takes hours). The values used are written into the report's `warmup`/`frames`
+   * fields, so a shortened run gives itself away — a number that goes into the
+   * article always has to come from the default budget.
    */
   readonly warmup?: number;
   readonly frames?: number;
@@ -207,15 +207,15 @@ export async function runMeasurement(
   app.setZoom(1);
   app.setLoad(load);
 
-  // 1) Font + kutu metrikleri.
+  // 1) Font + box metrics.
   const metrics = measureWords([...WORDS, CONTROL_WORD], rasterOptions);
 
-  // 2) RGB probu: "GÜNEŞ" rasterinin ham RGBA'sı.
+  // 2) RGB probe: the raw RGBA of the "GÜNEŞ" raster.
   const probeCtx = drawTextToCanvas("GÜNEŞ", box, rasterOptions, true);
   const probeRgba = probeCtx.getImageData(0, 0, box.width, box.height).data;
   const rgb = probeEdgeRgb(probeRgba);
 
-  // 3) willReadFrequently kıyası: aynı kutu, iki canvas, 20'şer geri okuma.
+  // 3) willReadFrequently comparison: same box, two canvases, 20 readbacks each.
   const readOn = drawTextToCanvas("GÜNEŞ", box, rasterOptions, true);
   const readOff = drawTextToCanvas("GÜNEŞ", box, rasterOptions, false);
   const onSamples: number[] = [];
@@ -229,7 +229,7 @@ export async function runMeasurement(
     offSamples.push(performance.now() - t0);
   }
 
-  // 4) Eşik taraması: breve'in payı.
+  // 4) Threshold sweep: the breve's share.
   const withBreveRaster = app.rasterOf("YAĞMUR");
   const withoutBreveRaster = app.rasterOf(CONTROL_WORD);
   const thresholdRows = THRESHOLDS.map((t) => {
@@ -238,7 +238,7 @@ export async function runMeasurement(
     return { t, withBreve, withoutBreve, delta: withBreve - withoutBreve };
   });
 
-  // 5) Kelime başına çıkarma faturası.
+  // 5) The extraction bill, per word.
   const extractRows = WORDS.map((word) => {
     const r = app.extract(word, MAIN_COUNT, MAIN_THRESHOLD, "morton");
     return {
@@ -252,7 +252,7 @@ export async function runMeasurement(
     };
   });
 
-  // 6) Örnekleme yolu: yürüyüş mü ikili arama mı.
+  // 6) The sampling path: walk or binary search.
   const gunesRaster = app.rasterOf("GÜNEŞ");
   const gunesIndex = buildCoverageIndex(gunesRaster, MAIN_THRESHOLD);
   const sampling = COUNTS.map((count) => ({
@@ -271,7 +271,7 @@ export async function runMeasurement(
     ),
   }));
 
-  // 7) Doluluk CV: payda harfin kapsadığı hücreler.
+  // 7) Occupancy CV: the denominator is the cells the letter covers.
   const support = maskFromRaster(gunesRaster, MAIN_THRESHOLD, OCCUPANCY_CELL);
   const randomPoints = sampleTargetsRandom(gunesRaster, gunesIndex, MAIN_COUNT, mulberry32(2));
   const stratifiedPoints = sampleTargets(gunesRaster, gunesIndex, MAIN_COUNT, mulberry32(2));
@@ -286,7 +286,7 @@ export async function runMeasurement(
     ),
   };
 
-  // 8) Eşleştirme: "GÜNEŞ" → "YAĞMUR", dört sıralama.
+  // 8) Pairing: "GÜNEŞ" → "YAĞMUR", four orderings.
   const cloudA = sampleTargets(gunesRaster, gunesIndex, MAIN_COUNT, mulberry32(2));
   const yagmurIndex = buildCoverageIndex(withBreveRaster, MAIN_THRESHOLD);
   const cloudB = sampleTargets(withBreveRaster, yagmurIndex, MAIN_COUNT, mulberry32(3));
@@ -310,7 +310,7 @@ export async function runMeasurement(
       3,
     );
 
-  /** Eksen ayrıştırması: toplam mesafeye bakınca kimliğin dikey kazancı kayboluyor. */
+  /** Axis breakdown: look at total distance and identity's vertical gain disappears. */
   const axisUnits = (a: Float32Array, b: Float32Array): { x: number; y: number } => {
     const ua = toBoxWidthUnits(a, box.width, box.height);
     const ub = toBoxWidthUnits(b, box.width, box.height);
@@ -344,7 +344,7 @@ export async function runMeasurement(
   } as const;
 
   const pairing = {
-    unit: "kutu genişliği %",
+    unit: "% of box width",
     shuffled: pairUnits(paired.shuffled[0], paired.shuffled[1]),
     identity: pairUnits(paired.identity[0], paired.identity[1]),
     byX: pairUnits(paired.byX[0], paired.byX[1]),
@@ -360,7 +360,7 @@ export async function runMeasurement(
     sortMortonMs: round(sortMortonMs, 3),
   };
 
-  // 9) Çizim: iki yol × üç parçacık sayısı, uT = 0,5 sabit.
+  // 9) Drawing: two paths × three particle counts, uT fixed at 0.5.
   app.setThreshold(MAIN_THRESHOLD);
   app.setPairing("morton");
   app.setSpread(0.6);
@@ -402,7 +402,7 @@ export async function runMeasurement(
     }
   }
 
-  // 10) Morph maliyeti: 100k, dörtgen, uT sabit üç aşama.
+  // 10) Morph cost: 100k, quads, uT held at three stages.
   app.setCount(MAIN_COUNT);
   app.setDrawMode("quads");
   app.setWord("GÜNEŞ");
@@ -421,7 +421,7 @@ export async function runMeasurement(
     morphOut[key] = gpu.length > 0 ? round(median(gpu), 4) : null;
   }
 
-  // 11) Kelime değişim donması: her sayı için ilk ve ikinci koşu.
+  // 11) The word-change stall: first and second run for every count.
   const rebuild: MeasureReport["rebuild"] = [];
   for (const count of COUNTS) {
     app.setCount(count);
@@ -432,14 +432,14 @@ export async function runMeasurement(
     rebuild.push({ count, totalMs: round(first, 3), secondRunMs: round(second, 3) });
   }
 
-  // 12) Shader / CPU easing paritesi.
+  // 12) Shader / CPU easing parity.
   const parityReport = measureShaderParity(app.gl, 0.5, 0.6, 256);
   const parity = {
     maxAbsDiff: parityReport.maxAbsDiff === null ? null : round(parityReport.maxAbsDiff, 7),
     skipped: parityReport.skipped,
   };
 
-  // 13) Okunabilirlik: t = 0,5 anında ekranın üçte birleri.
+  // 13) Readability: the thirds of the screen at t = 0.5.
   const oldRaster = gunesRaster;
   const newRaster = withBreveRaster;
   const oldMask = maskFromRaster(oldRaster, MAIN_THRESHOLD, READABILITY_CELL);

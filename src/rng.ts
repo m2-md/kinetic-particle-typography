@@ -1,6 +1,6 @@
 /**
- * mulberry32 — tohumlanabilir, 32 bitlik durumlu PRNG.
- * Ölçümün deterministik olması buna bağlı: aynı tohum aynı parçacık bulutu.
+ * mulberry32 — seedable PRNG with 32 bits of state.
+ * The determinism of the measurement rests on it: same seed, same particle cloud.
  */
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;

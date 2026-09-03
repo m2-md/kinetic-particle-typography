@@ -2,10 +2,10 @@ import type { AlphaRaster } from "./alphaRaster";
 import type { CoverageIndex } from "./extractTargets";
 
 /**
- * Kontrol grubu: katman jitter'ı VAR, piksel içi jitter YOK.
- * Parçacıklar seçilen pikselin tam merkezine oturuyor. Aynı piksele birden
- * fazla parçacık düştüğünde üst üste biniyorlar — jitter'ın ne işe yaradığını
- * gösteren tek fark bu.
+ * Control group: stratum jitter IS there, intra-pixel jitter is NOT.
+ * Particles sit at the exact center of the chosen pixel. When more than one
+ * particle lands on the same pixel they stack up — that single difference is
+ * what shows what the jitter is for.
  */
 export function sampleTargetsNoJitter(
   raster: AlphaRaster,

@@ -1,9 +1,9 @@
 import type { AlphaRaster } from "../raster/alphaRaster";
 
 /**
- * Kaba ızgara maskesi. Raster uzayı `cell` piksellik hücrelere bölünüyor;
- * bir hücre ya doludur ya boş. Parçacık bulutu ile harf silüetini aynı
- * çözünürlükte karşılaştırabilmek için tek ölçü birimi.
+ * Coarse grid mask. Raster space is cut into `cell`-pixel cells; a cell is
+ * either full or empty. A single unit of measure so the particle cloud and the
+ * letter silhouette can be compared at the same resolution.
  */
 export interface Mask {
   readonly cols: number;
@@ -25,7 +25,7 @@ function empty(width: number, height: number, cell: number): Mask {
   return { cols, rows, cell, bits: new Uint8Array(cols * rows) };
 }
 
-/** Eşiği geçen bir piksel varsa hücre dolu. */
+/** A cell is full if any pixel in it passes the threshold. */
 export function maskFromRaster(raster: AlphaRaster, threshold: number, cell: number): Mask {
   const mask = empty(raster.width, raster.height, cell);
   const { data, width, height } = raster;
@@ -38,7 +38,7 @@ export function maskFromRaster(raster: AlphaRaster, threshold: number, cell: num
   return mask;
 }
 
-/** [0,1] uzayındaki noktaları ızgaraya damgalar. Izgara dışı kelepçelenir. */
+/** Stamps points in [0,1] space onto the grid. Anything outside is clamped. */
 export function splat(points: Float32Array, width: number, height: number, cell: number): Mask {
   const mask = empty(width, height, cell);
   const n = points.length / 2;
@@ -51,11 +51,11 @@ export function splat(points: Float32Array, width: number, height: number, cell:
 }
 
 /**
- * Kesişim / birleşim, yalnızca [x0, x1) yatay bandı üzerinde.
- * x0 ve x1 kesirli: 0 sol kenar, 1 sağ kenar. Birleşim boşsa 0.
+ * Intersection over union, restricted to the horizontal band [x0, x1).
+ * x0 and x1 are fractional: 0 is the left edge, 1 the right. Empty union → 0.
  */
 export function iou(a: Mask, b: Mask, x0: number, x1: number): number {
-  if (a.cols !== b.cols || a.rows !== b.rows) throw new Error("maske boyutları uyuşmuyor");
+  if (a.cols !== b.cols || a.rows !== b.rows) throw new Error("mask dimensions do not match");
 
   const from = Math.max(0, Math.min(a.cols, Math.round(x0 * a.cols)));
   const to = Math.max(from, Math.min(a.cols, Math.round(x1 * a.cols)));

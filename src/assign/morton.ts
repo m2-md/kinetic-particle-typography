@@ -1,4 +1,4 @@
-/** 16 bitlik bir sayının bitlerini araya birer sıfır koyarak yayar. */
+/** Spreads the bits of a 16-bit number, interleaving a zero between each. */
 export function part1By1(n: number): number {
   let x = n & 0xffff;
   x = (x | (x << 8)) & 0x00ff00ff;
@@ -8,7 +8,7 @@ export function part1By1(n: number): number {
   return x >>> 0;
 }
 
-/** x, y ∈ [0,1] → 32 bitlik Morton (Z-eğrisi) kodu. */
+/** x, y ∈ [0,1] → 32-bit Morton (Z-curve) code. */
 export function morton2D(x: number, y: number): number {
   const qx = Math.min(0xffff, Math.max(0, Math.round(x * 0xffff)));
   const qy = Math.min(0xffff, Math.max(0, Math.round(y * 0xffff)));

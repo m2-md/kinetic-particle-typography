@@ -2,11 +2,11 @@ import { mulberry32 } from "../rng";
 import type { AlphaRaster } from "./alphaRaster";
 
 /**
- * Canvas GEREKTİRMEYEN raster üreticileri. Testler ve `npm run bench` bunları
- * kullanıyor: headless vitest'te `document` yok, `fillText` yok.
+ * Raster generators that need NO canvas. The tests and `npm run bench` use them:
+ * in headless vitest there is no `document` and no `fillText`.
  */
 
-/** Keskin kenarlı dikdörtgen. Kapsanan piksel sayısı elle sayılabilir olsun diye. */
+/** Hard-edged rectangle. So that the covered pixel count can be counted by hand. */
 export function solidBox(
   width: number,
   height: number,
@@ -42,7 +42,7 @@ interface Disk {
   readonly r: number;
 }
 
-/** Eksenlere hizalı dikdörtgenin bir pikselle kesişim ALANI — tam değer. */
+/** Intersection AREA of an axis-aligned rectangle with one pixel — exact value. */
 function rectCoverage(px: number, py: number, r: Rect): number {
   const ox = Math.min(px + 1, r.x1) - Math.max(px, r.x0);
   if (ox <= 0) return 0;
@@ -51,7 +51,7 @@ function rectCoverage(px: number, py: number, r: Rect): number {
   return Math.min(1, ox) * Math.min(1, oy);
 }
 
-/** Disk için bir piksel genişliğinde doğrusal rampa — kenar yumuşatmasının ucuz taklidi. */
+/** A one-pixel-wide linear ramp for the disk — a cheap imitation of antialiasing. */
 function diskCoverage(px: number, py: number, d: Disk): number {
   const dx = px + 0.5 - d.cx;
   const dy = py + 0.5 - d.cy;
@@ -60,9 +60,9 @@ function diskCoverage(px: number, py: number, d: Disk): number {
 }
 
 /**
- * Prosedürel "kelime": beş harf yuvası, her yuvada iki dikey + bir yatay çubuk,
- * bazılarında bir de diyakritik disk. Kenarları analitik olarak yumuşatılmış,
- * yani alfa rampası gerçek rasterdeki gibi 0–255 arasında sürekli.
+ * A procedural "word": five letter slots, each with two vertical bars plus one
+ * horizontal bar, some of them also carrying a diacritic disk. The edges are
+ * antialiased analytically, so the alpha ramp is continuous over 0–255 like a real raster.
  */
 export function syntheticWord(width: number, height: number, seed: number): AlphaRaster {
   const rng = mulberry32(seed);
@@ -86,7 +86,7 @@ export function syntheticWord(width: number, height: number, seed: number): Alph
     const barY = y0 + (bottom - y0) * (0.35 + rng() * 0.3);
     rects.push({ x0: cx - halfWidth, y0: barY, x1: cx + halfWidth, y1: barY + stroke });
 
-    // Diyakritik: ince, gövdenin üstünde, eşiğe en duyarlı yapı.
+    // Diacritic: thin, above the body, the structure most sensitive to the threshold.
     if (rng() < 0.5) {
       disks.push({ cx, cy: y0 - height * 0.07, r: stroke * 0.42 });
     }

@@ -30,23 +30,23 @@ function isPermutation(order: Uint32Array, count: number): boolean {
   return true;
 }
 
-describe("eşleştirme sıralamaları", () => {
+describe("pairing orders", () => {
   const count = 4000;
   const points = randomCloud(count, 21);
 
-  it("dört yol da geçerli permütasyon üretiyor", () => {
+  it("all four paths produce a valid permutation", () => {
     for (const mode of PAIRING_MODES) {
       const order = orderFor(mode, points, count, mulberry32(1));
       expect(isPermutation(order, count), mode).toBe(true);
     }
   });
 
-  it("orderIdentity gerçekten kimlik", () => {
+  it("orderIdentity really is the identity", () => {
     const order = orderIdentity(5);
     expect(Array.from(order)).toEqual([0, 1, 2, 3, 4]);
   });
 
-  it("aynı tohum aynı permütasyonu veriyor, farklı tohum farklı", () => {
+  it("the same seed gives the same permutation, a different seed a different one", () => {
     const a = orderShuffled(count, mulberry32(3));
     const b = orderShuffled(count, mulberry32(3));
     const c = orderShuffled(count, mulberry32(4));
@@ -54,9 +54,9 @@ describe("eşleştirme sıralamaları", () => {
     expect(c).not.toEqual(a);
   });
 
-  it("orderByX çıktısı x'e göre azalmayan", () => {
+  it("the orderByX output is non-decreasing in x", () => {
     const order = orderByX(points, count);
-    // Anahtar 32 bite kuantize; tolerans bir kuantizasyon adımı.
+    // The key is quantized to 32 bits; the tolerance is one quantization step.
     const eps = 1 / 0xffffffff;
     let previous = -1;
     for (const i of order) {
@@ -68,9 +68,9 @@ describe("eşleştirme sıralamaları", () => {
 });
 
 /**
- * Ölçüm birimi: KUTU GENİŞLİĞİ. y ekseni oranla ölçekleniyor, yoksa mesafe
- * anizotropik olur — 1024×256'lık bir kutuda dikey bir pikselin ağırlığı
- * yatay bir pikselin dört katı çıkar ve sıralama birimin kendisinden doğar.
+ * Unit of measure: BOX WIDTH. The y axis is scaled by the ratio, otherwise
+ * distance turns anisotropic — in a 1024×256 box a vertical pixel would weigh
+ * four times a horizontal one and the ranking would come out of the unit itself.
  */
 function isotropic(points: Float32Array, width: number, height: number): Float32Array {
   const k = height / width;
@@ -93,7 +93,7 @@ function axisTravel(a: Float32Array, b: Float32Array): { x: number; y: number } 
   return { x: sx / n, y: sy / n };
 }
 
-describe("kat edilen yol", () => {
+describe("distance covered", () => {
   const count = 20_000;
   const width = 1024;
   const height = 256;
@@ -112,22 +112,22 @@ describe("kat edilen yol", () => {
   const byX = pair(orderByX(cloudA, count), orderByX(cloudB, count));
   const morton = pair(orderMorton(cloudA, count), orderMorton(cloudB, count));
 
-  it("morton ve x-sıralı, karıştırılmışın çok altında yol kat ettiriyor", () => {
+  it("morton and x-sorted cover far less distance than shuffled", () => {
     const random = meanTravel(shuffled.a, shuffled.b);
     expect(meanTravel(morton.a, morton.b)).toBeLessThan(random * 0.5);
     expect(meanTravel(byX.a, byX.b)).toBeLessThan(random * 0.5);
   });
 
-  it("morton kimliği de yeniyor", () => {
+  it("morton beats identity too", () => {
     expect(meanTravel(morton.a, morton.b)).toBeLessThan(meanTravel(identity.a, identity.b));
   });
 
   /**
-   * Makalenin iddiası burada çiviliyor: katmanlı yürüyüş rasteri satır satır
-   * tarıyor, dolayısıyla kimlik eşleştirmesi DİKEY uyumu bedavaya kazanıyor.
-   * Yatayda hiçbir garantisi yok — o eksende rastgeleden iyi değil.
+   * This nails the article's claim: the stratified walk scans the raster row by
+   * row, so the identity pairing gets VERTICAL agreement for free. On the
+   * horizontal it guarantees nothing — on that axis it is no better than random.
    */
-  it("kimlik dikeyde neredeyse kusursuz, yatayda garantisiz", () => {
+  it("identity is near perfect vertically and guarantees nothing horizontally", () => {
     const idAxis = axisTravel(identity.a, identity.b);
     const shAxis = axisTravel(shuffled.a, shuffled.b);
 
@@ -135,7 +135,7 @@ describe("kat edilen yol", () => {
     expect(idAxis.x).toBeGreaterThan(shAxis.x * 0.75);
   });
 
-  it("morton iki eksende birden toparlıyor", () => {
+  it("morton tightens both axes at once", () => {
     const moAxis = axisTravel(morton.a, morton.b);
     const shAxis = axisTravel(shuffled.a, shuffled.b);
     expect(moAxis.x).toBeLessThan(shAxis.x * 0.5);

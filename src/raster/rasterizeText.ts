@@ -16,21 +16,21 @@ export interface TextBox {
 
 let scratch: CanvasRenderingContext2D | null = null;
 
-/** Tek seferlik 1×1 ölçüm canvas'ı. Piksel okunmuyor, `willReadFrequently` gereksiz. */
+/** One-off 1×1 measuring canvas. No pixels are read, so `willReadFrequently` is moot. */
 export function scratchContext(): CanvasRenderingContext2D {
   if (scratch) return scratch;
   const canvas = document.createElement("canvas");
   canvas.width = 1;
   canvas.height = 1;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("2d context alınamadı");
+  if (!ctx) throw new Error("could not obtain a 2d context");
   scratch = ctx;
   return ctx;
 }
 
 /**
- * BÜTÜN kelimeler için TEK kutu. En geniş genişlik ve en yüksek çıkıntı kazanır;
- * yoksa kutuyu ilk kelimeye göre kuran kod sonraki kelimelerin şapkasını kırpar.
+ * ONE box for ALL the words. The widest width and the tallest overshoot win;
+ * otherwise code that sizes the box off the first word clips the diacritic of the rest.
  */
 export function measureBox(words: readonly string[], o: RasterOptions): TextBox {
   const ctx = scratchContext();
@@ -44,7 +44,7 @@ export function measureBox(words: readonly string[], o: RasterOptions): TextBox 
 
   for (const word of words) {
     const m = ctx.measureText(word);
-    // actualBoundingBoxLeft sola doğru POZİTİF ölçülüyor; toplamı mürekkep genişliği.
+    // actualBoundingBoxLeft is measured POSITIVE toward the left; the sum is the ink width.
     ink = Math.max(ink, m.actualBoundingBoxLeft + m.actualBoundingBoxRight);
     ascent = Math.max(ascent, m.actualBoundingBoxAscent);
     descent = Math.max(descent, m.actualBoundingBoxDescent);
@@ -65,13 +65,13 @@ export function rasterizeText(text: string, box: TextBox, o: RasterOptions): Alp
   canvas.height = box.height;
 
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) throw new Error("2d context alınamadı");
+  if (!ctx) throw new Error("could not obtain a 2d context");
 
   ctx.clearRect(0, 0, box.width, box.height);
   ctx.font = `${o.fontSize}px ${o.fontFamily}`;
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
-  ctx.fillStyle = "#fff"; // renk önemsiz: yalnızca alfayı okuyacağız
+  ctx.fillStyle = "#fff"; // the color is irrelevant: we will only read the alpha
   ctx.fillText(text, box.width / 2, box.baseline);
 
   const rgba = ctx.getImageData(0, 0, box.width, box.height).data;
@@ -82,9 +82,9 @@ export function rasterizeText(text: string, box: TextBox, o: RasterOptions): Alp
 }
 
 /* ------------------------------------------------------------------ */
-/* Aşağısı yalnızca ölçüm için. `rasterizeText`in adımlarını ayırıyor:  */
-/* fillText / getImageData / alfa taraması ayrı ayrı saatlensin diye.   */
-/* ------------------------------------------------------------------ */
+/* Everything below is for measurement only. It splits the steps of     */
+/* `rasterizeText` so fillText / getImageData / the alpha scan can each */
+/* be timed on their own.                                               */
 
 export interface WordMetrics {
   readonly word: string;
@@ -93,7 +93,7 @@ export interface WordMetrics {
   readonly inkWidth: number;
 }
 
-/** Kelime kelime mürekkep metrikleri + fonta ait sabit ascent. */
+/** Per-word ink metrics plus the font's own fixed ascent. */
 export function measureWords(
   words: readonly string[],
   o: RasterOptions,
@@ -122,7 +122,7 @@ export function measureWords(
   return { words: out, fontAscent, fontDescent };
 }
 
-/** Metni boş bir canvas'a çizip context'i döndürür; piksel OKUMAZ. */
+/** Draws the text onto a blank canvas and returns the context; reads NO pixels. */
 export function drawTextToCanvas(
   text: string,
   box: TextBox,
@@ -134,7 +134,7 @@ export function drawTextToCanvas(
   canvas.height = box.height;
 
   const ctx = canvas.getContext("2d", { willReadFrequently });
-  if (!ctx) throw new Error("2d context alınamadı");
+  if (!ctx) throw new Error("could not obtain a 2d context");
 
   ctx.clearRect(0, 0, box.width, box.height);
   ctx.font = `${o.fontSize}px ${o.fontFamily}`;
@@ -145,7 +145,7 @@ export function drawTextToCanvas(
   return ctx;
 }
 
-/** RGBA dizisinden yalnızca alfa kanalını çeker. Dört baytta bir okuma. */
+/** Pulls only the alpha channel out of an RGBA array. One read every four bytes. */
 export function alphaFromRgba(rgba: Uint8ClampedArray, width: number, height: number): AlphaRaster {
   const data = new Uint8Array(width * height);
   for (let i = 0, p = 3; i < data.length; i++, p += 4) data[i] = rgba[p];

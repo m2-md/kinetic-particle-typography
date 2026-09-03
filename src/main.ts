@@ -16,7 +16,7 @@ import { runMeasurement } from "./measure/run";
 
 function need<T extends Element>(selector: string): T {
   const el = document.querySelector<T>(selector);
-  if (!el) throw new Error(`DOM düğümü yok: ${selector}`);
+  if (!el) throw new Error(`no such DOM node: ${selector}`);
   return el;
 }
 
@@ -62,7 +62,7 @@ function loop(): void {
 function setRunning(next: boolean): void {
   if (next === running) return;
   running = next;
-  toggleButton.textContent = running ? "Dur" : "Devam";
+  toggleButton.textContent = running ? "Pause" : "Resume";
   if (running) frameId = requestAnimationFrame(loop);
   else cancelAnimationFrame(frameId);
 }
@@ -110,8 +110,8 @@ function wireControls(): void {
   }
   markActive(countRow, String(DEFAULT_COUNT));
 
-  // Aynı kelimeye geçmek her parçacığın kaynağını hedefine EŞİTLİYOR.
-  // Shader'daki max(length(d), 1e-6) kelepçesi olmasa bulut NaN'a gidip kaybolurdu.
+  // Switching to the same word makes every particle's source EQUAL to its target.
+  // Without the max(length(d), 1e-6) clamp in the shader the cloud would go NaN and vanish.
   againButton.addEventListener("click", () => {
     app.setWord(currentWord);
   });
@@ -173,8 +173,8 @@ async function boot(): Promise<void> {
   const params = new URLSearchParams(location.search);
   const measureMode = params.get("measure") === "1";
   const load = Math.max(1, Number(params.get("load") ?? "1") || 1);
-  // Kare bütçesi override'ı yalnız duman testi için; kullanılan değer raporun
-  // warmup/frames alanlarına yazıldığı için kısaltılmış koşu kendini ele veriyor.
+  // The frame-budget override is for the smoke test only; the value used is written
+  // into the report's warmup/frames fields, so a shortened run gives itself away.
   const positive = (name: string): number | undefined => {
     const raw = params.get(name);
     if (raw === null) return undefined;
@@ -184,13 +184,13 @@ async function boot(): Promise<void> {
 
   const font = await loadFont(`${import.meta.env.BASE_URL}fonts/Roboto-Regular.ttf`, "KptRoboto");
   if (font.fallback) {
-    console.warn("Paketli font yüklenemedi; sistem fontuyla devam ediliyor.");
+    console.warn("The bundled font failed to load; continuing with the system font.");
   }
 
   try {
     app = createApp(canvas, { fontFamily: font.family });
   } catch (error) {
-    fail(`Bu tarayıcıda WebGL2 yok, demo çalışamaz. (${String(error)})`);
+    fail(`This browser has no WebGL2, the demo cannot run. (${String(error)})`);
     throw error;
   }
 
@@ -202,7 +202,7 @@ async function boot(): Promise<void> {
       event.preventDefault();
       setRunning(false);
       banner.hidden = false;
-      banner.textContent = "WebGL bağlamı kayboldu. Sayfayı yenileyin.";
+      banner.textContent = "The WebGL context was lost. Reload the page.";
       console.warn("webglcontextlost");
     },
     false,
@@ -211,7 +211,7 @@ async function boot(): Promise<void> {
   if (measureMode) {
     document.body.classList.add("measuring");
     toggleButton.disabled = true;
-    hud.setNote("Deterministik ölçüm koşuyor… (sekmeyi ön planda tutun)");
+    hud.setNote("Deterministic measurement running… (keep the tab in the foreground)");
     running = false;
     const report = await runMeasurement(app, font, {
       load,
@@ -231,6 +231,6 @@ async function boot(): Promise<void> {
 
 boot().catch((error) => {
   if (!banner.hidden) return;
-  fail(`Demo başlatılamadı: ${String(error)}`);
+  fail(`The demo could not start: ${String(error)}`);
   console.warn(error);
 });

@@ -2,12 +2,12 @@ import type { AlphaRaster } from "./alphaRaster";
 import type { CoverageIndex } from "./extractTargets";
 
 /**
- * Kontrol grubu. `sampleTargets` ile BİREBİR aynı çıktıyı üretir; tek fark,
- * dilimin hangi piksele düştüğünü sıralı yürüyüşle değil ikili aramayla
- * bulması. Yürüyüş `O(N + M)`, bu `O(N log M)`.
+ * Control group. Produces output BIT-IDENTICAL to `sampleTargets`; the only
+ * difference is that it finds which pixel a slice lands on with a binary search
+ * instead of a sequential walk. The walk is `O(N + M)`, this is `O(N log M)`.
  *
- * Aynı sırada aynı sayıda `rng()` çağrısı yapmak ZORUNDA: eşdeğerlik testi
- * bit-birebir karşılaştırıyor.
+ * It MUST make the same number of `rng()` calls in the same order: the
+ * equivalence test compares bit for bit.
  */
 export function sampleTargetsBinary(
   raster: AlphaRaster,
@@ -27,7 +27,7 @@ export function sampleTargetsBinary(
   for (let k = 0; k < count; k++) {
     const u = (k + rng()) * step;
 
-    // prefix[j + 1] >= u koşulunu sağlayan EN KÜÇÜK j; yoksa son piksel.
+    // The SMALLEST j satisfying prefix[j + 1] >= u; the last pixel if there is none.
     let lo = 0;
     let hi = last;
     while (lo < hi) {

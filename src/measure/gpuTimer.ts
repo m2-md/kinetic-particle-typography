@@ -6,7 +6,7 @@ interface TimerExt {
 export interface GpuTimer {
   begin(): void;
   end(): void;
-  /** Hazır olan sorguların sonuçlarını ms cinsinden toplar. */
+  /** Collects the results of the ready queries, in ms. */
   collect(out: number[]): void;
 }
 
@@ -35,12 +35,12 @@ export function createGpuTimer(gl: WebGL2RenderingContext, poolSize = 8): GpuTim
       active = null;
     },
     collect(out) {
-      // Sonuçlar birkaç kare geç geliyor; sıra korunuyor.
+      // Results arrive a few frames late; the order is preserved.
       while (pending.length > 0) {
         const q = pending[0];
         if (!gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) break;
         pending.shift();
-        // Disjoint bayrağı: GPU bağlam değiştirdiyse ölçüm çöp.
+        // Disjoint flag: if the GPU switched context the measurement is garbage.
         if (!gl.getParameter(ext.GPU_DISJOINT_EXT)) {
           out.push(gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6);
         }

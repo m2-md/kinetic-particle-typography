@@ -2,9 +2,9 @@ import type { AlphaRaster } from "./alphaRaster";
 import type { CoverageIndex } from "./extractTargets";
 
 /**
- * Kontrol grubu: katmansız, saf rastgele çekiş. `u = rng() * total`.
- * Sorgular sıralı olmadığı için yürüyen imleç kullanılamıyor, ikili arama şart.
- * Doluluk ölçümünde kümelenmenin referans noktası bu.
+ * Control group: unstratified, pure random draw. `u = rng() * total`.
+ * The queries are not ordered, so a walking cursor is out and a binary search is
+ * mandatory. This is the clustering reference point in the occupancy measurement.
  */
 export function sampleTargetsRandom(
   raster: AlphaRaster,

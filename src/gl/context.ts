@@ -1,6 +1,6 @@
 export interface GlContext {
   readonly gl: WebGL2RenderingContext;
-  /** [min, max] — max makineye göre değişiyor, garantisi yok. */
+  /** [min, max] — max varies from machine to machine, no guarantee. */
   readonly pointSizeRange: readonly [number, number];
   readonly rendererName: string;
   readonly colorBufferFloat: boolean;
@@ -13,10 +13,10 @@ export function createContext(canvas: HTMLCanvasElement): GlContext {
     depth: false,
     powerPreference: "high-performance",
   });
-  if (!gl) throw new Error("WebGL2 bağlamı alınamadı");
+  if (!gl) throw new Error("could not obtain a WebGL2 context");
 
   const range = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE) as Float32Array;
-  // [min, max] — max makineye göre değişiyor, garantisi yok
+  // [min, max] — max varies from machine to machine, no guarantee
 
   const debug = gl.getExtension("WEBGL_debug_renderer_info");
   const rendererName = debug

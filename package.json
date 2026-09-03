@@ -2,7 +2,7 @@
   "name": "kinetic-particle-typography",
   "private": true,
   "version": "1.0.0",
-  "description": "Canvas 2D metin rasterinden alfa kanaliyla parcacik hedefi cikarma, katmanli ornekleme, Morton sirasiyla esleme ve tek uniform'la surulen WebGL2 instanced morph",
+  "description": "Interactive particle typography: rasterizing canvas text, sampling alpha contours, Morton order pairing, and morphing 250,000 particles via single-uniform WebGL2 instancing.",
   "type": "module",
   "license": "MIT",
   "scripts": {

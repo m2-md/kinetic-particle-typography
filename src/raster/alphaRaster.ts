@@ -1,6 +1,6 @@
 export interface AlphaRaster {
   readonly width: number;
   readonly height: number;
-  /** Uzunluk width*height. Yalnızca alfa; RGB atılıyor. */
+  /** Length width*height. Alpha only; RGB is thrown away. */
   readonly data: Uint8Array;
 }

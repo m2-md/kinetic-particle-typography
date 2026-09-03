@@ -1,10 +1,10 @@
 /**
- * Tarayıcı GEREKTİRMEYEN algoritma ölçümleri.
- *   npm run bench   →   stdout'a TEK satır: BENCH {json}
+ * Algorithm measurements that need NO browser.
+ *   npm run bench   →   ONE line on stdout: BENCH {json}
  *
- * Gerçek font yok: `syntheticWord` ile üretilmiş iki sentetik raster kullanılıyor.
- * Karşılaştırılan şey algoritma — yürüyüş mü ikili arama mı, hangi eşleştirme
- * ne kadar yol kat ettiriyor, Morton sıralaması ne kadar sürüyor.
+ * No real font: two synthetic rasters produced by `syntheticWord` are used.
+ * What is being compared is the algorithm — walk or binary search, how much
+ * distance each pairing makes the particles cover, how long Morton sorting takes.
  */
 import { bowedPosition, localTime } from "../src/anim/easing";
 import { hash01 } from "../src/anim/hash";
@@ -74,9 +74,9 @@ function travelPercent(a: Float32Array, b: Float32Array): number {
 }
 
 /**
- * Eksen ayrıştırması. Kimlik eşleştirmesinin kazancı SADECE dikeyde:
- * katmanlı yürüyüş rasteri satır satır tarıyor. Yatayda garantisi yok.
- * Toplam mesafeye bakınca bu ayrım kayboluyor, o yüzden ayrı raporlanıyor.
+ * Axis breakdown. The identity pairing's gain is ONLY on the vertical: the
+ * stratified walk scans the raster row by row. On the horizontal it guarantees
+ * nothing. Total distance hides that split, so it is reported separately.
  */
 function axisPercent(a: Float32Array, b: Float32Array): { x: number; y: number } {
   const ua = toBoxWidthUnits(a);
@@ -122,7 +122,7 @@ function main(): void {
   const indexA = buildCoverageIndex(rasterA, THRESHOLD);
   const indexB = buildCoverageIndex(rasterB, THRESHOLD);
 
-  // 1) Örnekleme yolu: sıralı yürüyüş mü, ikili arama mı.
+  // 1) The sampling path: sequential walk or binary search.
   const sampling = COUNTS.map((count) => {
     const walk = timed(() => {
       sampleTargets(rasterA, indexA, count, mulberry32(7));
@@ -138,7 +138,7 @@ function main(): void {
     };
   });
 
-  // 2) Eşdeğerlik: aynı tohum, iki uygulama, BİT-BİREBİR aynı dizi.
+  // 2) Equivalence: same seed, two implementations, a BIT-IDENTICAL array.
   let walkEqualsBinary = true;
   for (const count of [1000, 25_000]) {
     const w = sampleTargets(rasterA, indexA, count, mulberry32(7));
@@ -151,7 +151,7 @@ function main(): void {
     }
   }
 
-  // 3) Doluluk: kümelenmeyi tek sayıya bağlamak.
+  // 3) Occupancy: pinning clustering to a single number.
   const support = maskFromRaster(rasterA, THRESHOLD, CELL);
   const occupancy = {
     cell: CELL,
@@ -187,7 +187,7 @@ function main(): void {
     ),
   };
 
-  // 4) Eşleştirme: dört yol, aynı iki bulut.
+  // 4) Pairing: four paths, the same two clouds.
   const cloudA = sampleTargets(rasterA, indexA, MAIN_COUNT, mulberry32(7));
   const cloudB = sampleTargets(rasterB, indexB, MAIN_COUNT, mulberry32(8));
 
@@ -221,7 +221,7 @@ function main(): void {
   } as const;
 
   const pairing = {
-    unit: "kutu genişliği %",
+    unit: "% of box width",
     shuffled: travelPercent(paired.shuffled[0], paired.shuffled[1]),
     identity: travelPercent(paired.identity[0], paired.identity[1]),
     byX: travelPercent(paired.byX[0], paired.byX[1]),
@@ -237,7 +237,7 @@ function main(): void {
     sortMortonMs: sortMorton.ms,
   };
 
-  // 5) Morton sıralamasının aşamaları.
+  // 5) The phases of the Morton sort.
   const morton = COUNTS.map((count) => {
     const points = sampleTargets(rasterB, indexB, count, mulberry32(8));
     const samples = Array.from({ length: RUNS }, () => mortonPhases(points, count));
@@ -249,7 +249,7 @@ function main(): void {
     };
   });
 
-  // 6) Okunabilirlik: t = 0,5 anında ekranın üçte birleri.
+  // 6) Readability: the thirds of the screen at t = 0.5.
   const maskOld = maskFromRaster(rasterA, THRESHOLD, READ_CELL);
   const maskNew = maskFromRaster(rasterB, THRESHOLD, READ_CELL);
   const sourceCloud = reorder(cloudA, orderMorton(cloudA, MAIN_COUNT));

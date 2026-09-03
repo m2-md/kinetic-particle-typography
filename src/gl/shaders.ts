@@ -1,16 +1,16 @@
 /**
- * Tek kaynak, iki program. `POINTS` tanımlıysa `gl_PointSize` yolu, değilse
- * instanced dörtgen yolu derleniyor. Define'lar `withDefines` ile ikinci
- * satırdan enjekte ediliyor — `#version` ilk satır olmak ZORUNDA.
+ * One source, two programs. If `POINTS` is defined the `gl_PointSize` path is
+ * compiled, otherwise the instanced quad path. The defines are injected from the
+ * second line on by `withDefines` — `#version` MUST be the first line.
  */
 export const VERTEX_SRC = `#version 300 es
 precision highp float;
 
-layout(location = 0) in vec2 aCorner; // şablon dörtgen; POINTS yolunda yok
-layout(location = 1) in vec2 aSource; // [0,1] raster uzayı
+layout(location = 0) in vec2 aCorner; // template quad; absent on the POINTS path
+layout(location = 1) in vec2 aSource; // [0,1] raster space
 layout(location = 2) in vec2 aTarget;
 
-uniform vec2 uAspect;     // raster oranını clip alanına taşıyan ölçek
+uniform vec2 uAspect;     // scale carrying the raster ratio into clip space
 uniform vec2 uViewportPx;
 uniform float uRadiusPx;
 uniform float uT;         // 0 → 1
@@ -28,8 +28,8 @@ float localTime(float t, float phase, float spread) {
 }
 
 /**
- * Tamsayı hash. sin() tabanlı hash sürücüden sürücüye farklı sonuç veriyor;
- * tamsayı işlemleri her yerde birebir aynı.
+ * Integer hash. A sin()-based hash gives different results from driver to driver;
+ * integer ops are bit-identical everywhere.
  */
 float hash01(uint i) {
   uint h = i * 2654435761u;
@@ -43,7 +43,7 @@ void main() {
   float tl = localTime(uT, aTarget.x, uSpread);
 
   vec2 d = aTarget - aSource;
-  // Sıfır uzunlukta normalize NaN üretir; bölen kelepçeli.
+  // normalize on a zero length yields NaN; the divisor is clamped.
   vec2 normal = vec2(-d.y, d.x) / max(length(d), 1e-6);
 
 #ifdef POINTS
@@ -58,7 +58,7 @@ void main() {
 
   vec2 p = mix(aSource, aTarget, tl) + normal * bow;
 
-  // Raster uzayı (y aşağı) → clip alanı (y yukarı)
+  // Raster space (y down) → clip space (y up)
   vec2 clip = (p * 2.0 - 1.0) * vec2(1.0, -1.0) * uAspect;
 
   vGlow = 0.35 + 0.65 * (1.0 - abs(tl * 2.0 - 1.0));
@@ -86,14 +86,14 @@ out vec4 fragColor;
 
 void main() {
 #ifdef POINTS
-  // gl_PointCoord'un başlangıcı SOL ÜST (y aşağı). Radyal düşüş simetrik
-  // olduğu için burada fark etmiyor; dokulu sprite'ta eder.
+  // gl_PointCoord's origin is TOP LEFT (y down). The radial falloff is symmetric
+  // so it makes no difference here; with a textured sprite it would.
   vec2 local = gl_PointCoord * 2.0 - 1.0;
 #else
   vec2 local = vLocal;
 #endif
 
-  float d = dot(local, local); // merkeze uzaklığın karesi
+  float d = dot(local, local); // squared distance to the center
   if (d > 1.0) discard;
 
   float falloff = 1.0 - d;
@@ -102,8 +102,8 @@ void main() {
 `;
 
 /**
- * Shader/CPU parite ölçümü için minik program: 1×N RGBA32F hedefe her
- * parçacığın `localTime` değerini yazar. TS ikiziyle karşılaştırılıyor.
+ * Tiny program for the shader/CPU parity measurement: writes every particle's
+ * `localTime` value into a 1×N RGBA32F target. Compared against the TS twin.
  */
 export const PARITY_VERTEX_SRC = `#version 300 es
 precision highp float;
@@ -132,7 +132,7 @@ float localTime(float t, float phase, float spread) {
 }
 
 void main() {
-  // Sütun merkezinden faz: i / (count - 1)
+  // Phase from the column center: i / (count - 1)
   float i = floor(gl_FragCoord.x);
   float phase = i / max(uCount - 1.0, 1.0);
   fragColor = vec4(localTime(uT, phase, uSpread), phase, 0.0, 1.0);

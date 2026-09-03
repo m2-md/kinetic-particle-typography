@@ -1,13 +1,13 @@
 export interface EdgeRgbProbe {
-  /** 0 < a < 255 olan pikseller arasında max(|R-255|, |G-255|, |B-255|). */
+  /** max(|R-255|, |G-255|, |B-255|) among the pixels with 0 < a < 255. */
   readonly maxDeviation: number;
   readonly edgePixels: number;
 }
 
 /**
- * Beyaz metin çizilmiş bir RGBA tamponunda kenar piksellerinin RGB'si teoride
- * 255 olmalı. Tarayıcı canvas'ı önceden çarpılmış tutuyor, `getImageData` çarpımı
- * geri alıyor; düşük alfada bölme yuvarlaması sapma bırakıyor. Sapmayı ölçer.
+ * In an RGBA buffer with white text drawn into it the edge pixels' RGB should in
+ * theory be 255. The browser keeps the canvas premultiplied and `getImageData` undoes
+ * the multiply; at low alpha the division rounding leaves a deviation. This measures it.
  */
 export function probeEdgeRgb(rgba: Uint8ClampedArray | Uint8Array): EdgeRgbProbe {
   let maxDeviation = 0;

@@ -9,9 +9,9 @@ export interface ParityReport {
 }
 
 /**
- * Shader'daki `localTime` ile TS ikizini karşılaştırır: 1×N RGBA32F hedefe
- * her fazın eased değeri yazılıyor, `readPixels` ile geri okunuyor.
- * `EXT_color_buffer_float` yoksa atlanıyor — uydurma sayı yok.
+ * Compares the shader's `localTime` against the TS twin: the eased value of every
+ * phase is written into a 1×N RGBA32F target and read back with `readPixels`.
+ * Skipped when `EXT_color_buffer_float` is missing — no invented numbers.
  */
 export function measureShaderParity(
   gl: WebGL2RenderingContext,
@@ -27,7 +27,7 @@ export function measureShaderParity(
   const fbo = gl.createFramebuffer();
   const quad = gl.createBuffer();
   const vao = gl.createVertexArray();
-  if (!texture || !fbo || !quad || !vao) throw new Error("parite kaynakları oluşturulamadı");
+  if (!texture || !fbo || !quad || !vao) throw new Error("could not create parity resources");
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, samples, 1);

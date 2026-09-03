@@ -8,25 +8,25 @@ export interface Hud {
   showMeasureReport(report: MeasureReport): void;
 }
 
-/** ÖLÇÜM: her karede saatten/donanımdan okunan değerler. */
+/** MEASURED: values read off the clock or the hardware every frame. */
 const MEASURED = [
-  ["frame", "kare ms"],
+  ["frame", "frame ms"],
   ["fps", "FPS"],
   ["gpu", "GPU ms"],
-  ["rebuild", "son kelime donması"],
-  ["covered", "kapsanan piksel"],
+  ["rebuild", "last word stall"],
+  ["covered", "covered pixels"],
 ] as const;
 
-/** YAPISAL: kullanıcının seçtiği, ölçülmeyen ayarlar. */
+/** STRUCTURAL: settings the user picked, not measured. */
 const STRUCTURAL = [
-  ["word", "kelime"],
-  ["count", "parçacık"],
-  ["threshold", "alfa eşiği"],
-  ["spread", "kaydırma"],
-  ["draw", "çizim yolu"],
-  ["pairing", "eşleştirme"],
-  ["size", "arka tampon"],
-  ["box", "raster kutusu"],
+  ["word", "word"],
+  ["count", "particles"],
+  ["threshold", "alpha threshold"],
+  ["spread", "stagger"],
+  ["draw", "draw path"],
+  ["pairing", "pairing"],
+  ["size", "backing store"],
+  ["box", "raster box"],
   ["vram", "VRAM"],
 ] as const;
 
@@ -60,24 +60,24 @@ function row(parent: HTMLElement, label: string): HTMLElement {
 
 const PAIRING_LABEL: Record<string, string> = {
   morton: "Morton",
-  identity: "Kimlik",
-  byX: "X'e göre",
-  shuffled: "Karıştırılmış",
+  identity: "Identity",
+  byX: "By X",
+  shuffled: "Shuffled",
 };
 
 export function createHud(root: HTMLElement): Hud {
   root.textContent = "";
   const cells = new Map<string, HTMLElement>();
 
-  const measured = group("Ölçüm", "ÖLÇÜM");
+  const measured = group("Measured", "MEASURED");
   for (const [key, label] of MEASURED) cells.set(key, row(measured, label));
 
-  const structural = group("Yapılandırma", "YAPISAL");
+  const structural = group("Configuration", "STRUCTURAL");
   for (const [key, label] of STRUCTURAL) cells.set(key, row(structural, label));
 
   const note = document.createElement("div");
   note.className = "hud-note";
-  note.textContent = "GPU saati: yokluyor…";
+  note.textContent = "GPU clock: probing…";
 
   root.append(measured, structural, note);
 
@@ -95,16 +95,16 @@ export function createHud(root: HTMLElement): Hud {
       if (timerSource === "gpu") {
         set("gpu", stats.gpuMs === null ? "…" : `${stats.gpuMs.toFixed(3)} ms`);
       } else {
-        set("gpu", "uzantı yok");
+        set("gpu", "no extension");
       }
       set("rebuild", `${stats.rebuildMs.toFixed(1)} ms`);
-      set("covered", stats.covered.toLocaleString("tr-TR"));
+      set("covered", stats.covered.toLocaleString("en-US"));
 
       set("word", stats.word);
-      set("count", stats.count.toLocaleString("tr-TR"));
+      set("count", stats.count.toLocaleString("en-US"));
       set("threshold", String(stats.threshold));
       set("spread", stats.spread.toFixed(2));
-      set("draw", stats.drawMode === "points" ? "Nokta" : "Dörtgen");
+      set("draw", stats.drawMode === "points" ? "Point" : "Quad");
       set("pairing", PAIRING_LABEL[stats.pairing] ?? stats.pairing);
       set("size", `${stats.width}×${stats.height}`);
       set("box", `${stats.box.width}×${stats.box.height}`);
@@ -114,15 +114,15 @@ export function createHud(root: HTMLElement): Hud {
       timerSource = source;
       note.textContent =
         source === "gpu"
-          ? "GPU saati: EXT_disjoint_timer_query_webgl2"
-          : "GPU saati: uzantı yok → yalnız kare süresi";
+          ? "GPU clock: EXT_disjoint_timer_query_webgl2"
+          : "GPU clock: no extension → frame time only";
     },
     setNote(text) {
       note.textContent = text;
     },
     showMeasureReport(report) {
       const quad250 = report.draw.find((d) => d.mode === "quads" && d.count === 250_000);
-      const unit = report.gpuTimer ? "GPU ms" : "kare ms";
+      const unit = report.gpuTimer ? "GPU ms" : "frame ms";
       const value = report.gpuTimer
         ? (quad250?.gpuMs?.median.toFixed(3) ?? "—")
         : (quad250?.frameMs.median.toFixed(2) ?? "—");
@@ -132,19 +132,19 @@ export function createHud(root: HTMLElement): Hud {
       set("gpu", `${value} ${unit} @250k`);
       set("rebuild", `${report.rebuild[report.rebuild.length - 1]?.totalMs.toFixed(1) ?? "—"} ms`);
       set("covered", String(report.extract[0]?.covered ?? "—"));
-      set("word", "ölçüm koşusu");
+      set("word", "measurement run");
       set("count", "25k / 100k / 250k");
       set("threshold", "8 / 32 / 64 / 128 / 200");
-      set("spread", "0,6 · 0");
-      set("draw", "Nokta + Dörtgen");
-      set("pairing", "dördü de");
+      set("spread", "0.6 · 0");
+      set("draw", "Point + Quad");
+      set("pairing", "all four");
       set("size", `${report.backing.width}×${report.backing.height}`);
       set("box", `${report.box.width}×${report.box.height}`);
       set("vram", `${((250_000 * 16) / 1024 / 1024).toFixed(2)} MB`);
 
       note.textContent =
-        `ÖLÇÜM bitti · ${report.gpu} · kare başına yüklenen ` +
-        `${report.memory[0]?.perFrameBytes ?? "?"} bayt · konsolda MEASURE {…}`;
+        `MEASURE done · ${report.gpu} · uploaded per frame: ` +
+        `${report.memory[0]?.perFrameBytes ?? "?"} bytes · MEASURE {…} in the console`;
     },
   };
 }

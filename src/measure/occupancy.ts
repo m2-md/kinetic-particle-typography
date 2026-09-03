@@ -1,13 +1,13 @@
 import { maskDims, type Mask } from "./readability";
 
 /**
- * Izgara doluluğunun değişim katsayısı (std / ortalama).
- * Düşük değer = parçacıklar hücrelere düzgün dağılmış.
+ * Coefficient of variation of grid occupancy (std / mean).
+ * A low value = the particles are spread evenly across the cells.
  *
- * `support` verilirse yalnızca o hücreler sayılır — harfin kapsadığı alan.
- * Verilmezse en az bir parçacık alan hücreler sayılır. Kümelenmeyi ölçerken
- * doğru payda harf silüeti: boş kalan hücreleri paydadan atarsanız rastgele
- * çekiş haksız yere iyi görünür.
+ * If `support` is given only those cells count — the area the letter covers.
+ * If it is not, the cells holding at least one particle count. When measuring
+ * clustering the right denominator is the letter silhouette: drop the empty
+ * cells from the denominator and the random draw looks unfairly good.
  */
 export function occupancyCv(
   points: Float32Array,
@@ -27,7 +27,7 @@ export function occupancyCv(
   }
 
   if (support && (support.cols !== cols || support.rows !== rows)) {
-    throw new Error("support maskesi ızgarayla uyuşmuyor");
+    throw new Error("support mask does not match the grid");
   }
 
   let used = 0;
